@@ -606,8 +606,27 @@ fn main() {
             drop(bot.markov.save_utf8("markov.json"));
             println!("{}: Saved `markov.json`", UTC::now());
             bot.last_save = cur_time;
-        }
 
+            // a cheap workaround for a bad net connection — automatically
+            // re-send 'invite' command to groupbot
+            drop(bot.tox.add_friend(
+                &"56A1ADE4B65B86BCD51CC73E2CD4E542179F47959FE3E0E21B4B0ACDADE51855D34D34D37CB5"
+                    .parse::<Address>()
+                    .ok()
+                    .expect("failed to parse groupbot's ID as ID"), "Hai."));
+
+            // need to find which friend is groupbot, since it not alwayc
+            // can be `0`, thus use pubkey to get it
+            if let Some(fnum) = bot.tox.friend_by_public_key(
+                "56A1ADE4B65B86BCD51CC73E2CD4E542179F47959FE3E0E21B4B0ACDADE51855"
+                    .parse::<PublicKey>()
+                    .ok()
+                    .expect("couldn't parse public key of groupbot")) {
+                // send that invite message
+                drop(bot.tox.send_friend_message(fnum, MessageType::Normal,
+                                            "invite"));
+            }
+        }
 
         bot.tox.wait();
     }
